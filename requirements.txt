@@ -1,0 +1,11 @@
+flask 
+groq 
+python-dotenv 
+duckduckgo-search 
+langchain 
+langchain-groq 
+langchain-chroma 
+langchain-huggingface 
+sentence-transformers 
+chromadb 
+PyPDF2

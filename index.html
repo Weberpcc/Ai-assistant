@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050508;
+            --surface: #0c0c14;
+            --surface2: #13131f;
+            --border: #1e1e30;
+            --accent: #7c3aed;
+            --accent2: #a78bfa;
+            --green: #22c55e;
+            --text: #ffffff;
+            --muted: #6b7280;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 20px;
+            overflow-y: auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo h2 { font-size: 17px; font-weight: 700; color: #ffffff; }
+        .logo p { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+        .section-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            background: var(--surface2);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+
+        .tab-btn {
+            padding: 8px;
+            background: transparent;
+            border: none;
+            border-radius: 7px;
+            color: var(--muted);
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active { background: var(--accent); color: #ffffff; }
+
+        #text-tab input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 13px;
+            font-family: 'Outfit', sans-serif;
+            padding: 10px 12px;
+            outline: none;
+            margin-bottom: 8px;
+            transition: border 0.2s;
+        }
+
+        #text-tab input:focus { border-color: var(--accent2); }
+        #text-tab input::placeholder { color: var(--muted); }
+
+        #text-tab textarea {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 12px;
+            height: 140px;
+            resize: none;
+            outline: none;
+            margin-bottom: 8px;
+            line-height: 1.6;
+            transition: border 0.2s;
+        }
+
+        #text-tab textarea:focus { border-color: var(--accent2); }
+        #text-tab textarea::placeholder { color: var(--muted); }
+
+        .pdf-drop {
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 28px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .pdf-drop:hover { border-color: var(--accent2); background: #7c3aed08; }
+        .pdf-drop .di { font-size: 24px; margin-bottom: 6px; }
+        .pdf-drop p { color: var(--accent2); font-size: 13px; font-weight: 500; }
+        .pdf-drop small { color: var(--muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+
+        .upload-btn {
+            width: 100%;
+            padding: 11px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .upload-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px #7c3aed30; }
+        .upload-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .doc-status {
+            display: none;
+            background: #22c55e12;
+            border: 1px solid #22c55e25;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+        }
+
+        .status-row { display: flex; align-items: center; gap: 8px; }
+        .dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .doc-name-text { font-size: 12px; font-weight: 600; color: var(--green); }
+        .doc-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+        /* Capabilities */
+        .capabilities { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+        .cap-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 12px;
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .cap-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .cap-dot.green { background: var(--green); }
+        .cap-dot.purple { background: var(--accent2); }
+
+        /* MAIN */
+        .main { display: flex; flex-direction: column; height: 100vh; }
+
+        .topbar {
+            padding: 16px 28px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .topbar-left h2 { font-size: 17px; font-weight: 700; color: #ffffff; }
+        .topbar-left p { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+
+        .topbar-right { display: flex; gap: 8px; align-items: center; }
+
+        .badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        .badge.rag { background: #22c55e12; border: 1px solid #22c55e25; color: var(--green); }
+        .badge.web { background: #7c3aed12; border: 1px solid #7c3aed25; color: var(--accent2); }
+
+        .clear-btn {
+            padding: 7px 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            color: var(--muted);
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover { border-color: #ef444440; color: #ef4444; background: #ef444408; }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .message { display: flex; gap: 12px; max-width: 78%; animation: msgIn 0.3s ease; }
+        @keyframes msgIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .message.ai { align-self: flex-start; }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message.user .avatar { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+        .message.ai .avatar { background: var(--surface2); border: 1px solid var(--border); }
+
+        .msg-content { display: flex; flex-direction: column; gap: 4px; }
+
+        .bubble {
+            padding: 13px 16px;
+            border-radius: 13px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #ffffff;
+        }
+
+        .message.user .bubble {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai .bubble {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .tool-indicator {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .typing-bubble {
+            padding: 13px 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            border-bottom-left-radius: 4px;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .typing-bubble span {
+            width: 6px; height: 6px;
+            background: var(--muted);
+            border-radius: 50%;
+            animation: bounce 1.2s infinite;
+        }
+
+        .typing-bubble span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-bubble span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .empty-state .ei { font-size: 44px; opacity: 0.4; margin-bottom: 6px; }
+        .empty-state h3 { font-size: 17px; font-weight: 600; color: #4b5563; }
+        .empty-state p { font-size: 12px; font-family: 'JetBrains Mono', monospace; max-width: 280px; line-height: 1.6; }
+
+        .input-area {
+            padding: 18px 28px;
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 8px 8px 8px 16px;
+            transition: border 0.2s;
+        }
+
+        .input-row:focus-within { border-color: var(--accent2); }
+
+        .input-row input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 14px;
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+        }
+
+        .input-row input::placeholder { color: var(--muted); }
+
+        .send-btn {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #ffffff;
+            border: none;
+            border-radius: 9px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 14px #7c3aed40; }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .hint {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 7px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">🤖</div>
+            <div>
+                <h2>AI Assistant</h2>
+                <p>// RAG + Web Search</p>
+            </div>
+        </div>
+
+        <div class="section-label" style="margin-bottom:10px">Upload Document</div>
+
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-text" onclick="switchTab('text')">📝 Text</button>
+            <button class="tab-btn" id="tab-pdf" onclick="switchTab('pdf')">📄 PDF</button>
+        </div>
+
+        <div id="text-tab">
+            <input type="text" id="doc-name" placeholder="Document name..."/>
+            <textarea id="doc-text" placeholder="Paste document text here..."></textarea>
+            <button class="upload-btn" onclick="uploadDoc()" id="upload-btn">⟶ Upload</button>
+        </div>
+
+        <div id="pdf-tab" style="display:none">
+            <div class="pdf-drop" id="pdf-drop" onclick="document.getElementById('pdf-input').click()">
+                <div class="di">📄</div>
+                <p>Click to upload PDF</p>
+                <small>drag and drop supported</small>
+            </div>
+            <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="uploadPDF()"/>
+        </div>
+
+        <div class="doc-status" id="doc-status">
+            <div class="status-row">
+                <div class="dot"></div>
+                <span class="doc-name-text" id="status-name"></span>
+            </div>
+            <div class="doc-meta" id="status-meta"></div>
+        </div>
+
+        <div class="capabilities">
+            <div class="section-label" style="margin-bottom:10px">Capabilities</div>
+            <div class="cap-item"><div class="cap-dot green"></div>Document Q&A (RAG)</div>
+            <div class="cap-item"><div class="cap-dot purple"></div>Web Search (Agent)</div>
+            <div class="cap-item"><div class="cap-dot green"></div>Conversation Memory</div>
+            <div class="cap-item"><div class="cap-dot purple"></div>Smart Tool Selection</div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="topbar-left">
+                <h2>Charan's AI Assistant</h2>
+                <p>// powered by Llama 3.3 70B · RAG · Web Search</p>
+            </div>
+            <div class="topbar-right">
+                <span class="badge rag">RAG</span>
+                <span class="badge web">WEB</span>
+                <button class="clear-btn" onclick="clearChat()">🗑 Clear</button>
+            </div>
+        </div>
+
+        <div class="chat-area" id="chat-area">
+            <div class="empty-state" id="empty-state">
+                <div class="ei">🤖</div>
+                <h3>Ready to assist</h3>
+                <p>// ask anything — I'll search your documents or the web automatically</p>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-row">
+                <input type="text" id="msg-input"
+                    placeholder="Ask anything — documents or web..."
+                    onkeypress="if(event.key==='Enter') sendMessage()"/>
+                <button class="send-btn" onclick="sendMessage()" id="send-btn">→</button>
+            </div>
+            <div class="hint">enter to send · auto-selects RAG or web search</div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.getElementById("text-tab").style.display = tab === "text" ? "block" : "none";
+            document.getElementById("pdf-tab").style.display = tab === "pdf" ? "block" : "none";
+            document.getElementById("tab-text").classList.toggle("active", tab === "text");
+            document.getElementById("tab-pdf").classList.toggle("active", tab === "pdf");
+        }
+
+        async function uploadDoc() {
+            const text = document.getElementById("doc-text").value.trim();
+            const name = document.getElementById("doc-name").value.trim() || "Document";
+            if (!text) { alert("Paste document text first!"); return; }
+            const btn = document.getElementById("upload-btn");
+            btn.disabled = true; btn.textContent = "Uploading...";
+            const res = await fetch("/upload", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({text, name})
+            });
+            const data = await res.json();
+            if (data.status === "ok") setStatus(data.name, `${data.chunks} chunks ready`);
+            btn.disabled = false; btn.textContent = "⟶ Upload";
+        }
+
+        async function uploadPDF() {
+            const file = document.getElementById("pdf-input").files[0];
+            if (!file) return;
+            document.getElementById("pdf-drop").innerHTML = `<div class="di">⏳</div><p>Processing...</p>`;
+            const form = new FormData();
+            form.append("pdf", file);
+            const res = await fetch("/upload-pdf", {method: "POST", body: form});
+            const data = await res.json();
+            if (data.status === "ok") {
+                setStatus(data.name, `${data.pages} pages · ${data.chunks} chunks`);
+                document.getElementById("pdf-drop").innerHTML = `<div class="di">✅</div><p style="color:#22c55e">${data.name}</p>`;
+            }
+        }
+
+        function setStatus(name, meta) {
+    document.getElementById("status-name").textContent = name;
+    document.getElementById("status-meta").textContent = meta;
+    document.getElementById("doc-status").style.display = "block";
+    document.getElementById("empty-state")?.remove();
+    addMessage(`"${name}" loaded. Ask me anything about it — or anything else!`, "ai", null);
+}
+
+        async function sendMessage() {
+            const input = document.getElementById("msg-input");
+            const msg = input.value.trim();
+            if (!msg) return;
+            addMessage(msg, "user");
+            input.value = "";
+            document.getElementById("send-btn").disabled = true;
+            const typing = showTyping();
+            try {
+                const res = await fetch("/chat", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({message: msg})
+                });
+                const data = await res.json();
+typing.remove();
+if (data.error) addMessage("Error: " + data.error, "ai", null);
+else addMessage(data.reply, "ai", data.source || null);
+            } catch(e) {
+                typing.remove();
+                addMessage("Something went wrong.", "ai");
+            } finally {
+                document.getElementById("send-btn").disabled = false;
+            }
+        }
+
+        function addMessage(text, sender, source) {
+    const area = document.getElementById("chat-area");
+    const div = document.createElement("div");
+    div.className = `message ${sender}`;
+    div.innerHTML = `
+        <div class="avatar">${sender === "user" ? "👤" : "🤖"}</div>
+        <div class="msg-content">
+            <div class="bubble">${text}</div>
+            ${source ? `<div class="tool-indicator">// source: ${source}</div>` : ""}
+        </div>
+    `;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+}
+
+        function showTyping() {
+            const area = document.getElementById("chat-area");
+            const div = document.createElement("div");
+            div.className = "message ai";
+            div.innerHTML = `
+                <div class="avatar">🤖</div>
+                <div class="msg-content">
+                    <div class="typing-bubble"><span></span><span></span><span></span></div>
+                </div>
+            `;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+            return div;
+        }
+
+        async function clearChat() {
+            await fetch("/clear", {method: "POST"});
+            document.getElementById("chat-area").innerHTML = "";
+            addMessage("Chat cleared. Ask me anything!", "ai");
+        }
+    </script>
+</body>
+</html>
